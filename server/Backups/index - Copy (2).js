@@ -4,7 +4,7 @@ const cors = require('cors');
 const port = 3042;
 const sv = require('./signverify');
 const Transaction = require('./Transaction');
-const {addTransaction, getMempoolHeight, startMining} = require('./Mempool');
+const {addTransaction, getMempoolHeight} = require('./Mempool');
 
 
 // 07182021 SS - import elliptic library
@@ -81,34 +81,44 @@ app.get('/mempoolHeight', (req, res) => {
 
 app.post('/send', (req, res) => {
   const {sender, recipient, amount, privateKey} = req.body;
-	
-count = 0;  
+  const TX = new Transaction(sender, recipient, amount, privateKey);
+  console.log(TX);
+  addTransaction(TX);
+  res.send({ message: "Transaction added to the mempool" });
+/*
+  //console.log('Sender: ' + sender);
+  count = 0;
+//for (let acctAdd in balances){
 for (let pubAdd in pubKeyBal){
-if(pubAdd == sender){
+	//console.log('acctAdd: ' + acctAdd);
+        //console.log(key[count].getPrivate().toString(16));
+	if(pubAdd == sender){
 		publicKey = key[count].getPublic().encode('hex')
 		//console.log('publicKey : ' + publicKey );
 	break;
 	}else {
 		count++;
 	} 
-}
-
-if (sv.signVerify(privateKey, publicKey)){
-const TX = new Transaction(sender, recipient, amount, privateKey);
-  console.log(TX);
-  addTransaction(TX);
-  console.log("Message Verified");
-  res.send({ message: "Transaction added to the mempool" });
-}else {
-	console.log("Message authentication failed");
-	res.send({ message: "Transaction authentication failed" });
-}    
+  }
+  if (sv.signVerify(privateKey, publicKey)){
+	console.log("Message Verified");
+	//balances[sender] -= amount;
+	pubKeyBal[sender] -= amount;
+	//balances[recipient] = (balances[recipient] || 0) + +amount;
+	pubKeyBal[recipient] = (pubKeyBal[recipient] || 0) + +amount;
+	//res.send({ balance: balances[sender] , message: "Transaction authenticated successfully" });
+	res.send({ balance: pubKeyBal[sender] , message: "Transaction authenticated successfully" });
+  }else {
+	//res.send({ balance: balances[sender] , message: "Transaction authentication failed" });
+	res.send({ balance: pubKeyBal[sender] , message: "Transaction authentication failed" });
+}  
+*/
+  
 });
 
 
 
 app.get('/startMining', (req, res) => {
-  startMining(pubKeyBal);
   res.send({ message: "Mining Started" });
 });
 

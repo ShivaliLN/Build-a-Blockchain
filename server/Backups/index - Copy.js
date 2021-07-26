@@ -3,8 +3,6 @@ const app = express();
 const cors = require('cors');
 const port = 3042;
 const sv = require('./signverify');
-const Transaction = require('./Transaction');
-const {addTransaction, getMempoolHeight, startMining} = require('./Mempool');
 
 
 // 07182021 SS - import elliptic library
@@ -38,18 +36,16 @@ let pubAddress = "";
 for (let acctAdd in balances){
 key[count] = ec.genKeyPair();
 pubAddress = key[count].getPublic().encode('hex').toString().slice(-40)
-//console.log(pubAddress)
+console.log(pubAddress)
 //console.log("(" + acctAdd + ") "  + key[count].getPublic().encode('hex') + " (" + balances[acctAdd] + ")" ) 
 console.log("(" + acctAdd + ") "  + key[count].getPublic().encode('hex').toString().slice(-40) + " (" + balances[acctAdd] + ")" ) 
 pubKeyBal[pubAddress] = balances[acctAdd]
 count++
 }
 
-/*
 for (let pubKeyy in pubKeyBal) {
 console.log(pubKeyBal[pubKeyy])
 }
-*/
 
 console.log("Private Keys");
 console.log("------------------");
@@ -63,57 +59,41 @@ count++
 
 app.get('/balance/:address', (req, res) => {
   const {address} = req.params;
-  //console.log("Address :" + address)
+  console.log("Address :" + address)
   //const balance = balances[address] || 0;
   const balance = pubKeyBal[address] || 0;
   res.send({ balance });
 });
 
-
-app.get('/mempoolHeight', (req, res) => {
-  //console.log('In here')
-  const memcount = getMempoolHeight() || 0;
-  //console.log('memcount' + memcount)
-  res.send({ memcount });
-});
-
-
-
 app.post('/send', (req, res) => {
   const {sender, recipient, amount, privateKey} = req.body;
-	
-count = 0;  
+  //console.log('Private key received: ' + privateKey);
+  //console.log('Sender: ' + sender);
+  count = 0;
+//for (let acctAdd in balances){
 for (let pubAdd in pubKeyBal){
-if(pubAdd == sender){
+	//console.log('acctAdd: ' + acctAdd);
+        //console.log(key[count].getPrivate().toString(16));
+	if(pubAdd == sender){
 		publicKey = key[count].getPublic().encode('hex')
 		//console.log('publicKey : ' + publicKey );
 	break;
 	}else {
 		count++;
 	} 
-}
-
-if (sv.signVerify(privateKey, publicKey)){
-const TX = new Transaction(sender, recipient, amount, privateKey);
-  console.log(TX);
-  addTransaction(TX);
-  console.log("Message Verified");
-  res.send({ message: "Transaction added to the mempool" });
-}else {
-	console.log("Message authentication failed");
-	res.send({ message: "Transaction authentication failed" });
+  }
+  if (sv.signVerify(privateKey, publicKey)){
+	console.log("Message Verified");
+	//balances[sender] -= amount;
+	pubKeyBal[sender] -= amount;
+	//balances[recipient] = (balances[recipient] || 0) + +amount;
+	pubKeyBal[recipient] = (pubKeyBal[recipient] || 0) + +amount;
+	//res.send({ balance: balances[sender] , message: "Transaction authenticated successfully" });
+	res.send({ balance: pubKeyBal[sender] , message: "Transaction authenticated successfully" });
+  }else {
+	//res.send({ balance: balances[sender] , message: "Transaction authentication failed" });
+	res.send({ balance: pubKeyBal[sender] , message: "Transaction authentication failed" });
 }    
-});
-
-
-
-app.get('/startMining', (req, res) => {
-  startMining(pubKeyBal);
-  res.send({ message: "Mining Started" });
-});
-
-app.get('/stopMining', (req, res) => {
-  res.send({ message: "Mining Stoped" });
 });
 
 app.listen(port, () => {
